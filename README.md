@@ -1,6 +1,8 @@
 # Limbu Dictionary JSON API (v3)
 
-An open-access, versioned JSON API for the Sirijunga (Limbu) script. This repository serves as the primary data source for the Limbu Dictionary SPA, providing structured linguistic data for Limbu, English, and Nepali.
+An open-access, versioned JSON API for the Sirijunga (Limbu) script. This repository serves as the primary data source for the Limbu Dictionary SPA, providing structured linguistic data for Limbu, English, and Nepali translations.
+
+---
 
 ## 🚀 API Endpoint
 Use the following immutable URL to fetch the latest production data:
@@ -8,6 +10,8 @@ Use the following immutable URL to fetch the latest production data:
 ```text
 https://raw.githubusercontent.com/ingsha09/limbu-dictionary-api/main/data.json?v=3
 ```
+
+---
 
 ## 📊 Data Structure
 Each entry in the `data.json` array follows this schema:
@@ -21,39 +25,31 @@ Each entry in the `data.json` array follows this schema:
     "en": "Porcupine",
     "ne": "दुम्सी ।"
   },
+  "group": "AA",
   "status": "verified"
 }
 ```
-🧩 API Data Schema (v3)
-| Key | Type | Required | Description |
-|---|---|---|---|
-| id | String | Yes | Unique 5-digit identifier (e.g., "00010"). |
-| limbu | String | Yes | Word in Unicode Sirijunga script. Used as the primary sort key. |
-| phonetic | String | Yes | Devanagari or IPA pronunciation guide. |
-| group | String | No | Internal classification code (e.g., "AA", "BI"). |
-| meaning.en | String | Yes | English definition/translation. |
-| meaning.ne | String | Yes | Nepali definition/translation. |
-| status | String | Yes | Data quality flag: verified, pending, or correction_needed. |
-🔠 Alphabetical Weight & Exclusion Table
-Since the raw JSON (e.g., data.txt) is unsorted, developers must use the following weights to programmatically sort the data.
-Note: Characters ᤉ, ᤊ, a🧩 API Data Schema (v3)
-| Key | Type | Required | Description |
-|---|---|---|---|
-| id | String | Yes | Unique 5-digit identifier (e.g., "00010"). |
-| limbu | String | Yes | Word in Unicode Sirijunga script. Used as the primary sort key. |
-| phonetic | String | Yes | Devanagari or IPA pronunciation guide. |
-| group | String | No | Internal classification code (e.g., "AA", "BI"). |
-| meaning.en | String | Yes | English definition/translation. |
-| meaning.ne | String | Yes | Nepali definition/translation. |
-| status | String | Yes | Data quality flag: verified, pending, or correction_needed. |
-🔠 Alphabetical Weight & Exclusion Table
-Since the raw JSON (e.g., data.txt) is unsorted, developers must use the following weights to programmatically sort the data.
-Note: Characters ᤉ, ᤊ, a
+
+### Data Schema (v3)
+
+| Key            | Type   | Required | Description                                                                 |
+|-----------------|--------|----------|-----------------------------------------------------------------------------|
+| `id`           | String | Yes      | Unique 5-digit identifier (e.g., "00010").                                 |
+| `limbu`        | String | Yes      | Word in Unicode Sirijunga script. Used as the primary sort key.            |
+| `phonetic`     | String | Yes      | Devanagari or IPA pronunciation guide.                                     |
+| `group`        | String | No       | Internal classification code (e.g., "AA", "BI").                          |
+| `meaning.en`   | String | Yes      | English definition/translation.                                            |
+| `meaning.ne`   | String | Yes      | Nepali definition/translation.                                             |
+| `status`       | String | Yes      | Data quality flag: `verified`, `pending`, or `correction_needed`.          |
+
+---
 
 ## 🔤 Alphabetical Sorting Guide
-**IMPORTANT**: The raw JSON data may not be stored in alphabetical order. To display data correctly in your application, you must implement the following sorting logic using the weights outlined below.
+
+**IMPORTANT**: The raw JSON data may not be stored in alphabetical order. To display data correctly in your application, you must implement the following sorting logic using the predefined weights outlined below.
 
 ### Predefined Alphabet Order
+
 Exclude characters `ᤉ`, `ᤊ`, and `ᤚ`. Use the following array for indexing:
 
 ```javascript
@@ -63,7 +59,7 @@ Exclude characters `ᤉ`, `ᤊ`, and `ᤚ`. Use the following array for indexing
 ### Implementation Logic (JavaScript Example)
 
 ```javascript
-const limbuAlphabet = ['ᤀ', 'ᤁ', 'ᤂ', 'ᤃ', 'ᤄ', 'ᤅ', 'ᤆ', 'ᤇ', 'ᤈ', 'ᤋ', 'ᤌ', 'ᤍ', 'ᤎ', 'ᤏ', 'ᤐ', 'ᤑ', 'ᤒ', 'ᤓ', 'ᤔ', 'ᤕ', 'ᤖ', 'ᤗ', 'ᤘ', 'ᤙ', 'ᤛ', 'ᤜ'];
+const limbuAlphabet = ['ᤀ', 'ᤁ', 'ᤂ', 'ᤃ', 'ᤄ', 'ᤅ', 'ᤆ', 'ᤇ', 'ᤈ', 'ᤋ', 'ᤌ', 'ᤍ', 'ᤎ', 'ᤏ', 'ᤐ', 'ᤑ', 'ᤒ', 'ᤓ', 'ᤔ', 'ᤕ', 'ᤖ', 'ᤗ', 'ᤘ', 'ᤙ', 'ᤛ'];
 
 function sortLimbu(data) {
     return data.sort((a, b) => {
@@ -80,12 +76,19 @@ function sortLimbu(data) {
 }
 ```
 
+---
+
 ## 🛠 Contribution Workflow
+
 We welcome community contributions to expand this dataset. Below are the guidelines:
 
-- **Add Entry**: Open a GitHub Issue with the label `add-entry`.
-- **Suggest Edits**: Use the ID of the word (e.g., `ID: 00010`) to suggest corrections.
-- **Report Technical Issues**: For issues with the JSON structure, use the bug report template.
+1. **Add Entry**: Open a GitHub Issue with the label `add-entry`.
+2. **Suggest Edits**: Use the ID of the word (e.g., `ID: 00010`) to suggest corrections.
+3. **Report Technical Issues**: For issues with the JSON structure, use the bug report template.
 
-## 🧑‍💻 Maintainer and Version
+---
+
+## 🧑‍💻 Maintainer & Version
+
 - **Maintained by**: [ingsha09](https://github.com/ingsha09)
+- **Version**: `v3`
