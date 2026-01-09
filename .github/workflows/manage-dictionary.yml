@@ -1,0 +1,93 @@
+name: 📖 Limbu Dictionary Manager
+on:
+  push:
+    paths:
+      - 'data.json'
+  workflow_dispatch: # Allows manual run from the "Actions" tab
+
+jobs:
+  sync-and-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 🛠️ Process Data (Auto-Format & Clean)
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const filePath = 'data.json';
+          
+          try {
+            console.log("Reading data.json...");
+            let rawContent = fs.readFileSync(filePath, 'utf8');
+            let data = JSON.parse(rawContent);
+            
+            // HINT: If the data is in the OLD format (Object), convert it to NEW (Array)
+            if (!Array.isArray(data)) {
+              console.log("Old format detected. Converting Object to Array...");
+              data = Object.entries(data).map(([id, details]) => ({
+                id: id,
+                ...details
+              }));
+            }
+
+            // HINT: Clean every entry to ensure the API stays perfect
+            const processedData = data.map(item => {
+              // 1. Remove HTML tags (e.g., <p>word</p> -> word)
+              let rawMean = (item.mean || "").replace(/<\/?[^>]+(>|$)/g, "").trim();
+              
+              // 2. Logic to separate English from Nepali
+              let en = item.meaning?.en || "";
+              let ne = item.meaning?.ne || "";
+
+              // If meaning isn't split yet, find the first Nepali character (Devanagari)
+              if (!en && !ne && rawMean) {
+                const splitIndex = rawMean.search(/[\u0900-\u097F]/);
+                if (splitIndex !== -1) {
+                  en = rawMean.substring(0, splitIndex).trim();
+                  ne = rawMean.substring(splitIndex).trim();
+                } else {
+                  en = rawMean; // It's all English or no Nepali found
+                }
+              }
+
+              // 3. Return the standardized User-Friendly Object
+              return {
+                id: (item.id || "new-" + Math.random().toString(36).substr(2, 4)).toString(),
+                limbu: (item.limbu || item.dId || "TBD").trim(),
+                phonetic: (item.phonetic || item.desc || "").trim(),
+                group: item.group || "AA",
+                meaning: {
+                  en: en || "No English definition",
+                  ne: ne || "नेपाली अर्थ उपलब्ध छैन"
+                },
+                status: item.status || "verified",
+                lastModified: new Date().toISOString().split('T')[0]
+              };
+            });
+
+            // HINT: Sort by ID so the file is always organized alphabetically/numerically
+            processedData.sort((a, b) => a.id.localeCompare(b.id, undefined, {numeric: true}));
+
+            fs.writeFileSync(filePath, JSON.stringify(processedData, null, 2));
+            console.log("✅ Success: Data formatted, HTML removed, and languages separated.");
+          } catch (err) {
+            console.error("❌ ERROR: Your JSON has a syntax error (check for missing commas or brackets).");
+            console.error(err.message);
+            process.exit(1); // Stop the workflow if JSON is broken
+          }
+          EOF
+
+      - name: 💾 Save & Commit Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🤖 Auto-Sync: Cleaned and formatted dictionary data"
+          branch: main
