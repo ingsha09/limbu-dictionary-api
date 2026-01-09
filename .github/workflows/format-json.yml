@@ -1,0 +1,72 @@
+name: Format and Validate Dictionary
+on:
+  push:
+    paths:
+      - 'data.json'
+  workflow_dispatch: # This lets you run it manually for testing
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Important: allows the action to save the changes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Transform and Format JSON
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const filePath = 'data.json';
+          
+          try {
+            const rawData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            
+            // Transform object into a clean array
+            const formattedData = Object.entries(rawData).map(([id, details]) => {
+              // Remove HTML tags
+              const cleanMean = details.mean.replace(/<\/?[^>]+(>|$)/g, '').trim();
+              
+              // Split English from Nepali using Devanagari Unicode range
+              // This looks for the first occurrence of a Nepali character
+              const splitIndex = cleanMean.search(/[\u0900-\u097F]/);
+              
+              let english = cleanMean;
+              let nepali = "";
+              
+              if (splitIndex !== -1) {
+                english = cleanMean.substring(0, splitIndex).trim();
+                nepali = cleanMean.substring(splitIndex).trim();
+              }
+
+              return {
+                id: id,
+                limbu: details.dId ? details.dId.trim() : "",
+                phonetic: details.desc ? details.desc.trim() : "",
+                group: details.group || "",
+                meaning: {
+                  en: english,
+                  ne: nepali
+                },
+                status: "verified"
+              };
+            });
+
+            fs.writeFileSync(filePath, JSON.stringify(formattedData, null, 2));
+            console.log("Successfully transformed JSON");
+          } catch (err) {
+            console.error("Error processing JSON:", err.message);
+            process.exit(1);
+          }
+          EOF
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto-format and clean dictionary data"
