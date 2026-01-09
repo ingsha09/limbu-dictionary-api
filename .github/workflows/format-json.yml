@@ -19,13 +19,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Transform, Format, and Sort JSON
+      - name: Transform, Format, Sort, and Re-index JSON
         run: |
           node << 'EOF'
           const fs = require('fs');
           const filePath = 'data.json';
-          
-          // Official Limbu Alphabet Order for Sorting
           const limbuAlphabet = ['ᤀ', 'ᤁ', 'ᤂ', 'ᤃ', 'ᤄ', 'ᤅ', 'ᤆ', 'ᤇ', 'ᤈ', 'ᤋ', 'ᤌ', 'ᤍ', 'ᤎ', 'ᤏ', 'ᤐ', 'ᤑ', 'ᤒ', 'ᤓ', 'ᤔ', 'ᤕ', 'ᤖ', 'ᤗ', 'ᤘ', 'ᤙ', 'ᤛ', 'ᤜ'];
 
           try {
@@ -37,62 +35,67 @@ jobs:
               if (Array.isArray(item)) {
                 [id, details] = item;
               } else {
-                return item; 
+                id = item.id;
+                details = {
+                  dId: item.limbu,
+                  desc: item.phonetic,
+                  group: item.group,
+                  mean: item.meaning.en + " " + item.meaning.ne
+                };
               }
 
               const cleanMean = details.mean.replace(/<\/?[^>]+(>|$)/g, '').trim();
               const splitIndex = cleanMean.search(/[\u0900-\u097F]/);
               let english = cleanMean;
               let nepali = "";
-              
               if (splitIndex !== -1) {
                 english = cleanMean.substring(0, splitIndex).trim();
                 nepali = cleanMean.substring(splitIndex).trim();
               }
 
               let cleanLimbu = details.dId ? details.dId.trim() : "";
-              if (cleanLimbu.startsWith('-')) {
-                cleanLimbu = cleanLimbu.substring(1);
-              }
+              if (cleanLimbu.startsWith('-')) cleanLimbu = cleanLimbu.substring(1);
+
+              let cleanPhonetic = details.desc ? details.desc.trim() : "";
+              cleanPhonetic = cleanPhonetic.replace(/[\/\[\]]/g, '');
 
               return {
                 id: id,
                 limbu: cleanLimbu,
-                phonetic: details.desc ? details.desc.trim() : "",
+                phonetic: cleanPhonetic,
                 group: details.group || "",
-                meaning: {
-                  en: english,
-                  ne: nepali
-                },
+                meaning: { en: english, ne: nepali },
                 status: "verified"
               };
             });
 
-            // Filtering empty entries
+            // 1. Remove empty entries
             formattedData = formattedData.filter(entry => entry.limbu !== "");
 
-            // ALPHABETICAL SORTING LOGIC
+            // 2. Alphabetical Sort (Sirijunga Order)
             formattedData.sort((a, b) => {
               const charA = a.limbu.charAt(0);
               const charB = b.limbu.charAt(0);
               const idxA = limbuAlphabet.indexOf(charA);
               const idxB = limbuAlphabet.indexOf(charB);
-              
-              // If both characters are in our defined alphabet
               if (idxA !== -1 && idxB !== -1) {
                 if (idxA !== idxB) return idxA - idxB;
-              } 
-              // Handle characters not in the primary alphabet list
-              else if (idxA !== idxB) {
+              } else if (idxA !== idxB) {
                 return idxA === -1 ? 1 : -1;
               }
-              
-              // Secondary sort: standard string comparison for the rest of the word
               return a.limbu.localeCompare(b.limbu, 'ne-NP');
             });
 
-            fs.writeFileSync(filePath, JSON.stringify(formattedData, null, 2));
-            console.log("Successfully transformed and sorted JSON alphabetically");
+            // 3. RE-INDEXING: Assign IDs serially based on sorted order
+            const reIndexedData = formattedData.map((entry, index) => {
+              return {
+                ...entry,
+                id: (index + 1).toString() // Assigns "1", "2", "3", etc.
+              };
+            });
+
+            fs.writeFileSync(filePath, JSON.stringify(reIndexedData, null, 2));
+            console.log(`Successfully processed ${reIndexedData.length} entries with serial IDs.`);
           } catch (err) {
             console.error("Error processing JSON:", err.message);
             process.exit(1);
@@ -102,4 +105,4 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "v3: Format and Alphabetical Sort"
+          commit_message: "v3 Sync: Serial Re-indexing and Clean Format"
