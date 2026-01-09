@@ -3,13 +3,13 @@ on:
   push:
     paths:
       - 'data.json'
-  workflow_dispatch: # This lets you run it manually for testing
+  workflow_dispatch: 
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Important: allows the action to save the changes
+      contents: write 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,24 +19,29 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Transform and Format JSON
+      - name: Transform, Format, and Sort JSON
         run: |
           node << 'EOF'
           const fs = require('fs');
           const filePath = 'data.json';
           
+          // Official Limbu Alphabet Order for Sorting
+          const limbuAlphabet = ['ᤀ', 'ᤁ', 'ᤂ', 'ᤃ', 'ᤄ', 'ᤅ', 'ᤆ', 'ᤇ', 'ᤈ', 'ᤋ', 'ᤌ', 'ᤍ', 'ᤎ', 'ᤏ', 'ᤐ', 'ᤑ', 'ᤒ', 'ᤓ', 'ᤔ', 'ᤕ', 'ᤖ', 'ᤗ', 'ᤘ', 'ᤙ', 'ᤛ', 'ᤜ'];
+
           try {
             const rawData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-            
-            // Transform object into a clean array
-            const formattedData = Object.entries(rawData).map(([id, details]) => {
-              // Remove HTML tags
+            const dataToProcess = Array.isArray(rawData) ? rawData : Object.entries(rawData);
+
+            let formattedData = dataToProcess.map((item) => {
+              let id, details;
+              if (Array.isArray(item)) {
+                [id, details] = item;
+              } else {
+                return item; 
+              }
+
               const cleanMean = details.mean.replace(/<\/?[^>]+(>|$)/g, '').trim();
-              
-              // Split English from Nepali using Devanagari Unicode range
-              // This looks for the first occurrence of a Nepali character
               const splitIndex = cleanMean.search(/[\u0900-\u097F]/);
-              
               let english = cleanMean;
               let nepali = "";
               
@@ -45,9 +50,14 @@ jobs:
                 nepali = cleanMean.substring(splitIndex).trim();
               }
 
+              let cleanLimbu = details.dId ? details.dId.trim() : "";
+              if (cleanLimbu.startsWith('-')) {
+                cleanLimbu = cleanLimbu.substring(1);
+              }
+
               return {
                 id: id,
-                limbu: details.dId ? details.dId.trim() : "",
+                limbu: cleanLimbu,
                 phonetic: details.desc ? details.desc.trim() : "",
                 group: details.group || "",
                 meaning: {
@@ -58,8 +68,31 @@ jobs:
               };
             });
 
+            // Filtering empty entries
+            formattedData = formattedData.filter(entry => entry.limbu !== "");
+
+            // ALPHABETICAL SORTING LOGIC
+            formattedData.sort((a, b) => {
+              const charA = a.limbu.charAt(0);
+              const charB = b.limbu.charAt(0);
+              const idxA = limbuAlphabet.indexOf(charA);
+              const idxB = limbuAlphabet.indexOf(charB);
+              
+              // If both characters are in our defined alphabet
+              if (idxA !== -1 && idxB !== -1) {
+                if (idxA !== idxB) return idxA - idxB;
+              } 
+              // Handle characters not in the primary alphabet list
+              else if (idxA !== idxB) {
+                return idxA === -1 ? 1 : -1;
+              }
+              
+              // Secondary sort: standard string comparison for the rest of the word
+              return a.limbu.localeCompare(b.limbu, 'ne-NP');
+            });
+
             fs.writeFileSync(filePath, JSON.stringify(formattedData, null, 2));
-            console.log("Successfully transformed JSON");
+            console.log("Successfully transformed and sorted JSON alphabetically");
           } catch (err) {
             console.error("Error processing JSON:", err.message);
             process.exit(1);
@@ -69,4 +102,4 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-format and clean dictionary data"
+          commit_message: "v3: Format and Alphabetical Sort"
