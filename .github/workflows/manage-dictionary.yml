@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - 'data.json'
-  workflow_dispatch: # Allows manual run from the "Actions" tab
+  workflow_dispatch:
 
 jobs:
   sync-and-validate:
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 🛠️ Process Data (Auto-Format & Clean)
+      - name: 🛠️ Process Data (Auto-Format, Clean & Add Months)
         run: |
           node << 'EOF'
           const fs = require('fs');
@@ -30,64 +30,86 @@ jobs:
             let rawContent = fs.readFileSync(filePath, 'utf8');
             let data = JSON.parse(rawContent);
             
-            // HINT: If the data is in the OLD format (Object), convert it to NEW (Array)
             if (!Array.isArray(data)) {
-              console.log("Old format detected. Converting Object to Array...");
               data = Object.entries(data).map(([id, details]) => ({
                 id: id,
                 ...details
               }));
             }
 
-            // HINT: Clean every entry to ensure the API stays perfect
+            // 1. DEFINE MONTH DATA TO INJECT
+            const limbuMonths = [
+              { id: "m01", limbu: "ᤁᤠᤰᤑᤧᤰᤘᤠ", phonetic: "Kakphekwa", en: "January", ne: "काक्फेवा (माघ)" },
+              { id: "m02", limbu: "ᤛᤠᤵᤑᤧᤰᤘᤠ", phonetic: "Sakphekwa", en: "February", ne: "साक्फेवा (फाल्गुन)" },
+              { id: "m03", limbu: "ᤆᤧᤖᤧᤱᤏᤠᤶ", phonetic: "Cherengnam", en: "March", ne: "चेरेङ्नाम (चैत)" },
+              { id: "m04", limbu: "ᤌᤧᤖᤧᤱᤏᤠᤶ", phonetic: "Therenam", en: "April", ne: "थेरेनाम (वैशाख)" },
+              { id: "m05", limbu: "ᤁᤠᤵᤔᤣᤐ᤻ᤐᤠ", phonetic: "Kapmeppa", en: "May", ne: "काप्मेप्पा (जेष्ठ)" },
+              { id: "m06", limbu: "ᤌᤰᤔᤣᤐ᤻ᤐᤠ", phonetic: "Thakmeppa", en: "June", ne: "थकमेप्पा (असार)" },
+              { id: "m07", limbu: "ᤛᤡᤛᤣᤁ᤻ᤐᤠ", phonetic: "Sisekpa", en: "July", ne: "सिसेक्पा (साउन)" },
+              { id: "m08", limbu: "ᤌᤣᤛᤣᤁ᤻ᤐᤠ", phonetic: "Thesekpa", en: "August", ne: "ठेसेक्पा (भदौ)" },
+              { id: "m09", limbu: "ᤛᤡᤛᤣᤁ᤻ᤖᤥ", phonetic: "Sisekkro", en: "September", ne: "सिसेक्क्रो (असोज)" },
+              { id: "m10", limbu: "ᤌᤣᤛᤣᤁ᤻ᤖᤥ", phonetic: "Thesekkro", en: "October", ne: "थेसेक्क्रो (कात्तिक)" },
+              { id: "m11", limbu: "ᤛᤧᤴᤇᤧᤱᤗᤠ", phonetic: "Senchengla", en: "November", ne: "सेन्छेङ्ला (मङ्सिर)" },
+              { id: "m12", limbu: "ᤛᤡᤛᤣᤁ᤻ᤗᤠ", phonetic: "Sisekla", en: "December", ne: "सिसेक्ला (पुस)" }
+            ];
+
+            // 2. CHECK IF MONTHS EXIST, IF NOT ADD THEM
+            limbuMonths.forEach(m => {
+              if (!data.find(item => item.id === m.id)) {
+                data.push({
+                  id: m.id,
+                  limbu: m.limbu,
+                  phonetic: m.phonetic,
+                  group: "Months",
+                  meaning: { en: m.en, ne: m.ne },
+                  status: "verified",
+                  lastModified: new Date().toISOString().split('T')[0]
+                });
+              }
+            });
+
+            // 3. CLEAN AND STANDARDIZE ENTRIES
             const processedData = data.map(item => {
-              // 1. Remove HTML tags (e.g., <p>word</p> -> word)
               let rawMean = (item.mean || "").replace(/<\/?[^>]+(>|$)/g, "").trim();
-              
-              // 2. Logic to separate English from Nepali
               let en = item.meaning?.en || "";
               let ne = item.meaning?.ne || "";
 
-              // If meaning isn't split yet, find the first Nepali character (Devanagari)
               if (!en && !ne && rawMean) {
                 const splitIndex = rawMean.search(/[\u0900-\u097F]/);
                 if (splitIndex !== -1) {
                   en = rawMean.substring(0, splitIndex).trim();
                   ne = rawMean.substring(splitIndex).trim();
                 } else {
-                  en = rawMean; // It's all English or no Nepali found
+                  en = rawMean;
                 }
               }
 
-              // 3. Return the standardized User-Friendly Object
               return {
                 id: (item.id || "new-" + Math.random().toString(36).substr(2, 4)).toString(),
-                limbu: (item.limbu || item.dId || "TBD").trim(),
-                phonetic: (item.phonetic || item.desc || "").trim(),
-                group: item.group || "AA",
+                limbu: (item.limbu || "TBD").trim(),
+                phonetic: (item.phonetic || "").trim(),
+                group: item.group || "General",
                 meaning: {
-                  en: en || "No English definition",
-                  ne: ne || "नेपाली अर्थ उपलब्ध छैन"
+                  en: en || item.meaning?.en || "No English definition",
+                  ne: ne || item.meaning?.ne || "नेपाली अर्थ उपलब्ध छैन"
                 },
                 status: item.status || "verified",
-                lastModified: new Date().toISOString().split('T')[0]
+                lastModified: item.lastModified || new Date().toISOString().split('T')[0]
               };
             });
 
-            // HINT: Sort by ID so the file is always organized alphabetically/numerically
             processedData.sort((a, b) => a.id.localeCompare(b.id, undefined, {numeric: true}));
 
             fs.writeFileSync(filePath, JSON.stringify(processedData, null, 2));
-            console.log("✅ Success: Data formatted, HTML removed, and languages separated.");
+            console.log("✅ Success: Dictionary updated with Months and formatted.");
           } catch (err) {
-            console.error("❌ ERROR: Your JSON has a syntax error (check for missing commas or brackets).");
-            console.error(err.message);
-            process.exit(1); // Stop the workflow if JSON is broken
+            console.error("❌ ERROR:", err.message);
+            process.exit(1);
           }
           EOF
 
       - name: 💾 Save & Commit Changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "🤖 Auto-Sync: Cleaned and formatted dictionary data"
+          commit_message: "🤖 Auto-Sync: Added Limbu Months to dictionary"
           branch: main
