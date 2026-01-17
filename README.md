@@ -8,7 +8,7 @@ An open-access, versioned JSON API for the Sirijunga (Limbu) script. This reposi
 Use the following immutable URL to fetch the latest production data:
 
 ```text
-https://raw.githubusercontent.com/ingsha09/limbu-dictionary-api/main/data.json?v=3
+https://raw.githubusercontent.com/ingsha09/limbu-dictionary-api/main/data.json
 ```
 
 ---
@@ -44,9 +44,6 @@ Each entry in the `data.json` array follows this schema:
 
 ---
 
-## 🔤 Alphabetical Sorting Guide
-
-**IMPORTANT**: The raw JSON data may not be stored in alphabetical order. To display data correctly in your application, you must implement the following sorting logic using the predefined weights outlined below.
 
 ### Predefined Alphabet Order
 
@@ -91,4 +88,3 @@ We welcome community contributions to expand this dataset. Below are the guideli
 ## 🧑‍💻 Maintainer & Version
 
 - **Maintained by**: [ingsha09](https://github.com/ingsha09)
-- **Version**: `v3`
