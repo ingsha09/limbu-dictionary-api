@@ -1,4 +1,4 @@
-# Limbu Dictionary JSON API (v3)
+# Limbu Dictionary JSON API
 
 An open-access, versioned JSON API for the Sirijunga (Limbu) script. This repository serves as the primary data source for the Limbu Dictionary SPA, providing structured linguistic data for Limbu, English, and Nepali translations.
 
@@ -30,7 +30,7 @@ Each entry in the `data.json` array follows this schema:
 }
 ```
 
-### Data Schema (v3)
+### Data Schema
 
 | Key            | Type   | Required | Description                                                                 |
 |-----------------|--------|----------|-----------------------------------------------------------------------------|
