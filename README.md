@@ -44,15 +44,6 @@ Each entry in the `data.json` array follows this schema:
 
 ---
 
-
-### Predefined Alphabet Order
-
-Exclude characters `ᤉ`, `ᤊ`, and `ᤚ`. Use the following array for indexing:
-
-```javascript
-['ᤀ', 'ᤁ', 'ᤂ', 'ᤃ', 'ᤄ', 'ᤅ', 'ᤆ', 'ᤇ', 'ᤈ', 'ᤋ', 'ᤌ', 'ᤍ', 'ᤎ', 'ᤏ', 'ᤐ', 'ᤑ', 'ᤒ', 'ᤓ', 'ᤔ', 'ᤕ', 'ᤖ', 'ᤗ', 'ᤘ', 'ᤙ', 'ᤛ', 'ᤜ']
-```
-
 ### Implementation Logic (JavaScript Example)
 
 ```javascript
